@@ -710,48 +710,38 @@ class Predictor(BasePredictor):
                 generator=generator,
             ).images
 
-        total_results = id_images + total_results
+        total_results.extend(id_images)
 
         real_images = []
-        write = False
         for real_prompt in real_prompts:
-            cur_step = 0
             real_prompt = apply_style_positive(style_name, real_prompt)
             if model_type == "original":
-                real_images.append(
-                    pipe(
-                        real_prompt,
-                        num_inference_steps=num_steps,
-                        guidance_scale=guidance_scale,
-                        height=height,
-                        width=width,
-                        negative_prompt=negative_prompt,
-                        generator=generator,
-                    ).images[0]
-                )
+                real_image = pipe(
+                    real_prompt,
+                    num_inference_steps=num_steps,
+                    guidance_scale=guidance_scale,
+                    height=height,
+                    width=width,
+                    negative_prompt=negative_prompt,
+                    generator=generator,
+                ).images[0]
             else:
-                real_images.append(
-                    pipe(
-                        real_prompt,
-                        input_id_images=input_id_images,
-                        num_inference_steps=num_steps,
-                        guidance_scale=guidance_scale,
-                        start_merge_step=start_merge_step,
-                        height=height,
-                        width=width,
-                        negative_prompt=negative_prompt,
-                        generator=generator,
-                    ).images[0]
-                )
+                real_image = pipe(
+                    real_prompt,
+                    input_id_images=input_id_images,
+                    num_inference_steps=num_steps,
+                    guidance_scale=guidance_scale,
+                    start_merge_step=start_merge_step,
+                    height=height,
+                    width=width,
+                    negative_prompt=negative_prompt,
+                    generator=generator,
+                ).images[0]
+            real_images.append(real_image)
 
-            total_results = [real_images[-1]] + total_results
+        total_results.extend(real_images)
 
-        captions = clipped_prompts
-        captions = [caption.replace("[NC]", "") for caption in captions]
-        captions = [
-            caption.split("#")[-1].strip() if "#" in caption else caption.strip()
-            for caption in captions
-        ]
+        captions = [caption.replace("[NC]", "").split("#")[-1].strip() if "#" in caption else caption.strip() for caption in clipped_prompts]
 
         comic = get_comic(
             id_images + real_images,
@@ -760,20 +750,14 @@ class Predictor(BasePredictor):
             font=ImageFont.truetype("./fonts/Inkfree.ttf", int(45)),
         )
 
-        extension = output_format.lower()
-        extension = "jpeg" if extension == "jpg" else extension
+        extension = "jpeg" if output_format.lower() == "jpg" else output_format.lower()
         comic_out = f"/tmp/comic.{extension}"
-        comic[0].save(comic_out)
-
-        save_params = {"format": extension.upper()}
-        if not output_format == "png":
-            save_params["quality"] = output_quality
-            save_params["optimize"] = True
+        comic[0].save(comic_out, format=extension.upper(), quality=output_quality if output_format != "png" else None, optimize=True if output_format != "png" else None)
 
         output_paths = []
-        for index, sample in enumerate(total_results[::-1]):
+        for index, sample in enumerate(total_results):
             output_filename = f"/tmp/out-{index}.{extension}"
-            sample.save(output_filename, **save_params)
+            sample.save(output_filename, format=extension.upper(), quality=output_quality if output_format != "png" else None, optimize=True if output_format != "png" else None)
             output_paths.append(Path(output_filename))
 
         del pipe
