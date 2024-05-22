@@ -33,10 +33,11 @@ global write
 global height, width
 
 
+"""
 # load and upload the weights to replicate.delivery for faster booting on Replicate
 models_dict = {
     "RealVision": "SG161222/RealVisXL_V4.0",
-    "Unstable": "cagliostrolab/animagine-xl-3.1",
+    "Unstable": "stablediffusionapi/sdxl-unstable-diffusers-y",
 }
 # photomaker_path =  hf_hub_download(repo_id="TencentARC/PhotoMaker", filename="photomaker-v1.bin", repo_type="model")
 photomaker_path = f"{MODEL_CACHE}/PhotoMaker/photomaker-v1.bin"
@@ -52,6 +53,7 @@ pipe_realvision = PhotoMakerStableDiffusionXLPipeline.from_pretrained(
     models_dict["RealVision"], torch_dtype=torch.float16, use_safetensors=True
 )
 pipe_realvision.save_pretrained(f"{MODEL_CACHE}/RealVision/SG161222/RealVisXL_V4.0")
+"""
 
 
 class ModelOutput(BaseModel):
